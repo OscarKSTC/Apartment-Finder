@@ -21,7 +21,7 @@ def getUrls():
 
         for apartment in apartments:
             url = apartment.attributes.get("href")
-            if url is not None:
+            if url is not None and url not in urls:
                 urls.append(url)
 
     return urls
