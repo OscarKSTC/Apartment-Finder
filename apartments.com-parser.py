@@ -1,24 +1,20 @@
 import httpx
 from selectolax.parser import HTMLParser
+from playwright.sync_api import sync_playwright
 
 
-url = "https://www.apartments.com/holden-house-saint-paul-mn/dmxeevk/"
-headers = {"User-Agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15"}
-resp = httpx.get(url, headers=headers, verify=False)
-html = HTMLParser(resp.text)
+def getAmenities(url):
+    with sync_playwright() as p:
+        browser = p.firefox.launch(headless=True)
+        page = browser.new_page()
+        page.goto(url)
+        html = page.content()
+        browser.close()
 
-prices = html.css("div.mortar-wrapper ul li") #grabbing all of the prices
+    tree = HTMLParser(html)
+    rentals = tree.css("ul.allAmenities li")
 
-my_list = []
-
-for price in prices:
-    my_list.append(price.text().strip().replace("\n", "").replace("\t", "").replace("  ", ""))
-#print(my_list[4])
-
-url2 = "https://www.apartments.com/holden-house-saint-paul-mn/dmxeevk/#p2tptes-2-unit"
-resp2 = httpx.get(url2, headers=headers, verify=False)
-html2 = HTMLParser(resp2.text)
-rentals = html2.css("ul.allAmenities ul li")
-
-for rental in rentals:
-    print(rental.text())
+    amenity_list = []
+    for rental in rentals:
+        amenity_list.append(rental.text())
+    print(amenity_list)
