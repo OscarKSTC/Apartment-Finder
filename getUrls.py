@@ -39,4 +39,5 @@ def getUrls():
         for tempUrl in tempUrls:
             urlsToAdd.append(url + "#" + tempUrl)
 
-    finalUrls[url] = finalUrls
+    finalUrls[url] = urlsToAdd
+    return finalUrls
