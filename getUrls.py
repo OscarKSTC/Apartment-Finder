@@ -26,7 +26,8 @@ def getUrls():
                 urls.append(url)
 
     tempUrls = []
-    finalUrls = []
+    finalUrls = {}
+    urlsToAdd = []
 
     for url in urls:
         resp = httpx.get(url, headers=headers, timeout=10)
@@ -36,6 +37,6 @@ def getUrls():
             tempUrls.append(room.attributes.get("data-unitkey") + "-2-unit")
         
         for tempUrl in tempUrls:
-            finalUrls.append(url + "#" + tempUrl)
+            urlsToAdd.append(url + "#" + tempUrl)
 
-    return finalUrls
+    finalUrls[url] = finalUrls
