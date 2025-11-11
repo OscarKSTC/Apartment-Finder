@@ -24,7 +24,6 @@ def getAmenities(url):
         amenity_list.append(rental.text())
     return amenity_list
 
-
 def getDetails(url):
     detail_list = []
     html = get_content(url)
@@ -35,5 +34,3 @@ def getDetails(url):
     for rental in rentals:
         detail_list.append(rental.text())
     return detail_list
-
-print(getDetails("https://www.apartments.com/holden-house-saint-paul-mn/dmxeevk/#pgvs12r-2-unit"))
