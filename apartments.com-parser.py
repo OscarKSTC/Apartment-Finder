@@ -17,4 +17,5 @@ def getAmenities(url):
     amenity_list = []
     for rental in rentals:
         amenity_list.append(rental.text())
-    print(amenity_list)
+    
+    return amenity_list
