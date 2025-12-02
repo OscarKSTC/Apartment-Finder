@@ -1,7 +1,11 @@
 package com.umnapartmentfinder.listings;
 
-import java.io.*;
-import java.util.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,7 +25,7 @@ public class SearchController {
             while((line = reader.readLine()) != null) {
                 String[] row = line.split(",");
                 if (line.contains(term)) {
-                    outputList.add(row[]);
+                    outputList.add(row[1]);
                 }
             }
         }

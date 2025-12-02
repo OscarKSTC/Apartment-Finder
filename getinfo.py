@@ -1,7 +1,7 @@
 import httpx, time
 from selectolax.parser import HTMLParser
 from getUrls import getUrls
-from getAmenities import getAmenities, getDetails, getRent, getRoomType, getContent
+from getAmenities import getAmenities, getDetails, getRent, getRoomType, getContent, getPropertyUrl
 
 def getInfo():
     urlDict = {}
@@ -35,7 +35,7 @@ def getInfo():
                 apartmentInfo.append(getRoomType(html))
                 apartmentInfo.append(getRent(html))
                 apartmentInfo.extend(getDetails(html))
-                apartmentInfo.append(url)
+                apartmentInfo.append(getPropertyUrl(html))
                 apartmentInfo.extend(getAmenities(html))
                 apartmentInfo.append("\n")
                 print(f"elapsed time: {(time.perf_counter() - start):.4f} seconds")

@@ -75,3 +75,14 @@ def getRoomType(html):
         roomtype = "room type not found"
 
     return roomtype
+
+def getPropertyUrl(html):
+    tree = HTMLParser(html)
+    try:
+        url = tree.css_first(".baseAlignedIcon.propertyWebsiteLink.propertyInfo.js-externalUrl").attributes["href"]
+    except:
+        url = "url not found"
+
+    return url
+
+print(getPropertyUrl(getContent("https://www.apartments.com/holden-house-saint-paul-mn/dmxeevk/")))
