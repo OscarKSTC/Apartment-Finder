@@ -1,23 +1,86 @@
 from selectolax.parser import HTMLParser
-from playwright.sync_api import sync_playwright
 
-
-def getContent(url):
-    with sync_playwright() as p:
-        browser = p.firefox.launch(headless=True)
-        page = browser.new_page()
-        page.goto(url, wait_until="domcontentloaded", timeout=0)
+async def safeGoto(browser, url):
+    for _ in range(25):
+        page = await browser.new_page()
         try:
-            page.wait_for_selector("ul.allAmenities")
-            page.wait_for_selector("ul.unit-specs li")
-            page.wait_for_selector("div.available-date-label")
-            page.wait_for_selector("div.specs-header.no-wrap.pricing")
-            page.wait_for_selector("div.specs-header")
+            await page.goto(url, wait_until="domcontentloaded")
+            html = await page.content()
+
+            if "access denied" in html.lower() or "<html></html>" in html.lower():
+                await page.close()
+                continue
+
+            return page, html
+        
+        except:
+            await page.close()
+            continue
+
+    raise Exception(f"safeGoto failed after 25 attempts: {url}")
+    
+
+async def getContent(url, browser):
+    rentalKey = url.split("#")[1].split("-")[0]
+    selector = f'button[data-rentalkey="{rentalKey}"].js-viewModelDetails-modal'
+    baseUrl = url.split("#")[0]
+
+    while True:
+        page, html = await safeGoto(browser, baseUrl)
+    
+        try:
+            await page.wait_for_selector("button.actionLinks.js-viewModelDetails-modal",timeout=10000)
+            await page.locator(selector).first.click()
+            break
+        except:
+            pass
+
+        try:
+            await page.wait_for_selector("button.js-showUnavailableFloorPlansButton",timeout=10000)
+            await page.locator('button[aria-expanded="false"].js-showUnavailableFloorPlansButton').first.click()
+            await page.locator(selector).first.click()
+            break
+        except:
+            pass
+
+    while True:
+        try:
+            await page.wait_for_selector("ul.unit-specs li",timeout=10000)
+            await page.wait_for_selector("div.specs-header",timeout=10000)
+            html = await page.content()
+            await page.close()
+            return html
         except Exception as e:
-            print(f"ERROR: {e} on {url}");        
-        html = page.content()
-        browser.close()
-        return html
+            print(f"ERROR: {e} on {url}")
+            await page.close()
+            return await getContent(url, browser)
+
+async def getPageContent(url, browser):
+    while True:
+        page, html = await safeGoto(browser, url)
+        try:                
+            await page.wait_for_selector("h1#propertyName.propertyName",timeout=10000)
+            await page.wait_for_selector("div.propertyAddressContainer",timeout=10000)
+            html = await page.content()
+            await page.close()
+            return html
+        
+        except Exception as e:
+            print(f"ERROR loading page {url}:\n{e}")
+            await page.close()
+            continue
+
+def getNameAndAddress(html):
+    tree = HTMLParser(html)
+    try:
+        name = tree.css_first("h1#propertyName.propertyName").text().replace("\n","").replace("  ","")
+    except:
+        name = "Name not found"
+    try:
+        address = tree.css_first("div.propertyAddressContainer").text().strip().replace(","," ").replace("\n", "").replace("  ","").replace("Property Website","").replace("MN","MN ")
+    except:
+        address = "Address not found"
+    return [name,address]
 
 def getAmenities(html):
     amenity_list = []
@@ -87,5 +150,3 @@ def getPropertyUrl(html):
         url = "url not found"
 
     return url
-
-print(getPropertyUrl(getContent("https://www.apartments.com/holden-house-saint-paul-mn/dmxeevk/")))

@@ -1,49 +1,79 @@
-import httpx
 from selectolax.parser import HTMLParser
+from getAmenities import safeGoto
 
-def getUrls(BasewebsiteUrl):
-    headers = {"User-Agent":"iTunes/12.13 (Windows; Microsoft Windows 10 x64; x64) AppleWebKit/7613.2007"}
-    
-
-    websiteUrls = [BasewebsiteUrl]
-    i = 1
-    while(i <= 6):
-        websiteUrls.append(BasewebsiteUrl + f"{i}/")
-        i += 1
-
+async def getWebsiteUrls(BasewebsiteUrl, browser):
+        
+    # gets urls for apartment building pages
     urls = []
 
-    for websiteUrl in websiteUrls: # gets urls for apartment building pages
-        resp = httpx.get(websiteUrl, headers=headers, timeout=10)
-        html = HTMLParser(resp.text)
+    page, html = await safeGoto(browser, BasewebsiteUrl)
+    while True:
+        try:
+            await page.wait_for_selector("a.property-link",timeout=10000)
+            break
+        except:
+            html = await page.content()
+            continue
 
-        apartments = html.css("a.property-link")
+    tree = HTMLParser(html)
+    apartments = tree.css("a.property-link")
 
-        for apartment in apartments:
-            url = apartment.attributes.get("href")
-            if url is not None and url not in urls:
-                urls.append(url)
+    for apartment in apartments:
+        url = apartment.attributes.get("href")
+        if url and url not in urls:
+            urls.append(url)
+    
+    await page.close()
+    return urls
 
-    finalUrls = {}
+async def getUrls(url, browser):
+    while True:
+        page, html = await safeGoto(browser, url)
 
-    for url in urls: # gets urls for apartment room pages
-        resp = httpx.get(url, headers=headers, timeout=10)
-        html = HTMLParser(resp.text)
+        try:
+            await page.wait_for_selector("div.pricingGridTitleBlock",timeout=10000)
+        except:
+            print(f"{url} may not be an apartment.")
+            await page.close()
+            return []
+        
+        try:
+            await page.wait_for_selector("button.actionLinks.js-viewModelDetails-modal",timeout=10000)
+        except:
+            pass
+
+        try:
+            await page.wait_for_selector("button.js-showUnavailableFloorPlansButton",timeout=10000)
+            await page.locator("button.js-showUnavailableFloorPlansButton").first.click()
+            await page.wait_for_selector("button.actionLinks.js-viewModelDetails-modal",timeout=10000)
+        except:
+            pass
+
+        tree = HTMLParser(await page.content())
         roomTypesCounted = []
         urlsToAdd = []
         tempUrls = []
 
-        roomInfo = html.css("li.unitContainer.js-unitContainerV3")
+        roomInfo = tree.css("button.actionLinks.js-viewModelDetails-modal")
         for room in roomInfo:
-            roomType = room.attributes.get("data-unit") + room.attributes.get("data-beds") + room.attributes.get("data-baths")
-            room.strip_tags(["button.btn.btn-sm.btn-secondary.sendMessage.js-sendMessage.actionLinks"])
+            roomType = room.attributes.get("data-rentalkey")
 
             if roomType not in roomTypesCounted:
-                tempUrls.append(room.attributes.get("data-unitkey") + "-2-unit")
+                tempUrls.append(room.attributes.get("data-rentalkey") + "-1-floorPlan")
                 roomTypesCounted.append(roomType)
         
         for tempUrl in tempUrls:
             urlsToAdd.append(url + "#" + tempUrl)
 
-        finalUrls[url] = urlsToAdd
+        await page.close()
+        return urlsToAdd
+
+async def getFinalUrls(urls, browser):
+    finalUrls = {}
+    for url in urls:
+        finalUrls[url] = await getUrls(url, browser)
     return finalUrls
+
+async def getAllUrls(baseUrl, browser):
+    urls = await getWebsiteUrls(baseUrl, browser)
+    return await getFinalUrls(urls, browser)
