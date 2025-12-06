@@ -140,7 +140,7 @@ def getRoomType(html):
     except:
         roomtype = "room type not found"
 
-    return roomtype
+    return roomtype.replace(","," ")
 
 def getPropertyUrl(html):
     tree = HTMLParser(html)
