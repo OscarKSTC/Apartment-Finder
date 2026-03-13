@@ -1,6 +1,7 @@
 import time, asyncio
 from selectolax.parser import HTMLParser # HTML -> HTML Tree
 from playwright.async_api import async_playwright # browser automation
+from playwright_stealth import Stealth
 
 # launch browser, scrapes all listing URLs, returns as dictionary of property link and their listings
 async def getData(url):
@@ -9,8 +10,10 @@ async def getData(url):
     infoDict = {}
 
     # create async function, launches firefox (instead of Chrome) to scrape.
+    # async with async_playwright() as p:
     async with async_playwright() as p:
-        browser = await p.firefox.launch(headless=False) # launch the browser
+        # browser = await p.firefox.launch(headless=False) # launch the browser
+        browser = await p.chromium.launch(headless=True)
 
         # extracts urls from pages
         urls = await getUrls(url, browser)
@@ -26,7 +29,7 @@ async def getData(url):
         for url in urls:
             try:
                 timeStart = time.time()
-                html = await goto(browser, url)
+                html = await goTo(browser, url)
                 tree = HTMLParser(html)
 
                 address = await getAddress(tree)
@@ -53,7 +56,7 @@ async def getData(url):
     return infoDict
 
 # loads listing page, 5 tries, and introduce CAPTCHA... manual process
-async def goto(browser, url):
+async def goTo(browser, url):
 
     # loads page, 5 tries...
     for _ in range(5):
@@ -64,6 +67,8 @@ async def goto(browser, url):
         # loads page
         try:
             page = await browser.new_page()
+            await Stealth().apply_stealth_async(page)  # applying stealth before navigation
+
             page.set_default_timeout(60000)  # 60 seconds
             response = await page.goto(url, wait_until="networkidle")
             html = await page.content()
@@ -107,6 +112,8 @@ async def getUrls(url, browser):
         # load page
         try:
             page = await browser.new_page()
+            await Stealth().apply_stealth_async(page)  # applying stealth before navigation
+
             page.set_default_timeout(60000)  # 60 seconds
             response = await page.goto(url, wait_until="networkidle")
             html = await page.content()
@@ -234,3 +241,9 @@ if __name__ == "__main__":
     apartmentData = asyncio.run(getData("https://listings.umn.edu/listing?category=15"))
     asyncio.run(makeCSV(apartmentData, "umn_apartment_data.csv"))
     print(f"Apartment data extraction completed in {(time.time() - time_start):.2f}")
+
+
+# I want to create a feature that allows the async function to bypass captcha, currently we have to manually solve captcha.
+# I could try and use playwright_stealth, which should theoretically bypass captcha, but making the page believe the browser is an actual user.
+# Currently this program uses async_playwright, which creates an async browser.
+# If I replaced this using stealth this should work?

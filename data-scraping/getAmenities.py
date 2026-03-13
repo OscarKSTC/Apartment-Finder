@@ -1,4 +1,5 @@
 from selectolax.parser import HTMLParser # parses HTML to return a queryable tree of HTML
+from playwright_stealth import Stealth # stealth plug-in for playwright
 
 # creates browser to access webpage, skipping blank or unavailable/denied... returns live page and it's html
 async def safeGoto(browser, url):
@@ -8,6 +9,7 @@ async def safeGoto(browser, url):
 
         # create new tab to access webpage
         page = await browser.new_page()
+        await Stealth().apply_stealth_async(page)
 
         # tries to open page with url, waiting for HTML
         try:
