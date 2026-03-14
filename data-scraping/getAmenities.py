@@ -1,5 +1,6 @@
 from selectolax.parser import HTMLParser # parses HTML to return a queryable tree of HTML
 from playwright_stealth import Stealth # stealth plug-in for playwright
+import random
 
 # creates browser to access webpage, skipping blank or unavailable/denied... returns live page and it's html
 async def safeGoto(browser, url):
@@ -22,6 +23,7 @@ async def safeGoto(browser, url):
                 continue
 
             # return webpage and html
+            await page.wait_for_timeout(random.randint(2000, 6000)) # random delay to mimic human
             return page, html
         
         # close webpage and try again, for 25 times...
@@ -54,6 +56,7 @@ async def getContent(url, browser):
         # looking for specific button to get info about specific room type.
         try:
             await page.wait_for_selector("button.actionLinks.js-viewModelDetails-modal",timeout=10000)
+            await page.wait_for_timeout(random.randint(1000, 3000)) # add pause before clicking
             await page.locator(selector).first.click()
             break
         except:
