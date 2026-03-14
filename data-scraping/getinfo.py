@@ -24,7 +24,7 @@ async def getInfo():
         # creates browser instances, with active window, and removes timeout.
         # browser = await p.chromium.launch(headless=True, timeout=0) # changed headless from false to true, to support Docker
         browser = await p.chromium.launch(
-            headless=True,
+            headless=True, # may need to change to false to have visual to complete CAPTCHA
             timeout=0,
             args=["--no-sandbox", "--disable-setuid-sandbox"]
         ) # changed headless from false to true, to support Docker

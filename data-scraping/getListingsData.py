@@ -13,7 +13,7 @@ async def getData(url):
     # async with async_playwright() as p:
     async with async_playwright() as p:
         # browser = await p.firefox.launch(headless=False) # launch the browser
-        browser = await p.chromium.launch(headless=True)
+        browser = await p.chromium.launch(headless=True) # may need to change to false to have visual to complete CAPTCHA
 
         # extracts urls from pages
         urls = await getUrls(url, browser)
