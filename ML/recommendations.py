@@ -1,4 +1,6 @@
 import time
+import psycopg2
+import csv
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -139,7 +141,42 @@ def recommend_apartments(csv_path, name):
     #creating csv file with all info on recommended apartments
     rec_df.to_csv("recommendations.csv")
 
+    columns = ", ".join([i for i in range(len(user_similarity[0]))])
+
+    upload_to_postgreSQL(columns)
+
     return rec_df["Name"][:5]
+
+
+def upload_to_postgreSQL(columns):
+    conn = psycopg2.connect(
+        host="localhost",
+        database="Apartment Finder",
+        user="postgres",
+        password="mypassword",
+        port=5432
+    )
+
+    cur = conn.cursor()
+
+    cur.execute(f"""
+    CREATE TABLE IF NOT EXISTS recommendations(
+        {columns}
+    )
+            """)
+    
+    with open("recommendations.csv", "r") as f:
+        cur.copy_expert(
+            """
+            COPY recommendations FROM STDIN WITH DELIMITEr ','
+            """,
+            f
+        )
+
+    
+    conn.commit()
+    cur.close()
+    conn.close()
 
 if __name__ == "__main__":
     print(recommend_apartments("umn_apartment_data.csv", "The Quad on Delaware"))
