@@ -168,7 +168,7 @@ def upload_to_postgreSQL(columns):
     with open("recommendations.csv", "r") as f:
         cur.copy_expert(
             """
-            COPY recommendations FROM STDIN WITH DELIMITEr ','
+            COPY recommendations FROM STDIN WITH DELIMITER ','
             """,
             f
         )
