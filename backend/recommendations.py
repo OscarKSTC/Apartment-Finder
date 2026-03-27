@@ -3,6 +3,9 @@ import psycopg2
 import csv
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics.pairwise import euclidean_distances
 from geopy.geocoders import Nominatim
 
@@ -45,9 +48,9 @@ def clean_data(csv_path):
     for value in df["Price"]:
         end_id = value.find("-")
         try:
-            df.iloc[idx, 5] = pd.to_numeric(value[1:end_id])
-        except:
-            df.iloc[idx, 5] = None
+            df.iloc[idx, 5] = pd.to_numeric(value[1:end_id], errors = 'coerce')
+        except TypeError:
+            df.iloc[idx, 5] = value[1:end_id]
         idx += 1
 
     # if price is not divided for each indivudal, do it manually
@@ -108,7 +111,7 @@ def find_distance(df):
 
 def recommend_apartments(csv_path, name):
     df = clean_data(csv_path)
-    
+
     id = df[df["Name"] == name].index[0] #choosing the id of the apartment you want to find recommendations for
     req = df.iloc[id,3] #grabbing # of bedrooms in given id
 
@@ -126,6 +129,7 @@ def recommend_apartments(csv_path, name):
 
     #calculating similarity using euclidean distance
     user_similarity = euclidean_distances(distance_df[["Bedrooms", "Bathrooms", "Size", "Price", "Distance"]])
+    print(len(user_similarity[0]))   
 
     #finding similar apartments to given id
     similar_apartments = user_similarity[id]
@@ -138,7 +142,7 @@ def recommend_apartments(csv_path, name):
     #creating csv file with all info on recommended apartments
     rec_df.to_csv("recommendations.csv")
 
-    columns = ", ".join([i for i in range(len(user_similarity[0]))])
+    columns = ' FLOAT, '.join([str(i) for i in range(len(user_similarity[0] ))])
 
     upload_to_postgreSQL(columns)
 
@@ -148,7 +152,7 @@ def recommend_apartments(csv_path, name):
 def upload_to_postgreSQL(columns):
     conn = psycopg2.connect(
         host="localhost",
-        database="Apartment Finder",
+        database="oscar",
         user="postgres",
         password="mypassword",
         port=5432
@@ -156,20 +160,22 @@ def upload_to_postgreSQL(columns):
 
     cur = conn.cursor()
 
+    # columns is a string like '0 FLOAT, 1 FLOAT, ...'
+    # We want to create a table with columns col0, col1, ...
+    col_defs = ', '.join([f'col{i} FLOAT' for i in range(len(columns.split(",")))])
     cur.execute(f"""
-    CREATE TABLE IF NOT EXISTS recommendations(
-        {columns}
-    )
-            """)
-    
-    with open("recommendations.csv", "r") as f:
+    CREATE TABLE IF NOT EXISTS recommendations (
+        {col_defs}
+    )""")
+
+    with open("test.csv", "r") as f:
         cur.copy_expert(
-            """
-            COPY recommendations FROM STDIN WITH DELIMITER ','
-            """,
+            f"COPY recommendations FROM STDIN WITH DELIMITER ','",
             f
         )
-    
+
+    #df = pd.read_sql_table(TABLE_NAME, engine)
+
     conn.commit()
     cur.close()
     conn.close()
