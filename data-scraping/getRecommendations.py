@@ -9,6 +9,8 @@ from sklearn.metrics.pairwise import euclidean_distances
 from geopy.geocoders import Nominatim
 
 def clean_house_data(csv_path):
+    full_house_df = pd.read_csv(csv_path) #reading csv file
+
     #spliting dataframes between amenities and other data points
     house_df = full_house_df.iloc[:,:7]
     house_amenities_df = full_house_df.iloc[:,7:]
